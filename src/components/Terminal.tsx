@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Device } from '../types';
+import { createTerminalWebSocket, executeCommand, isBackendAvailable } from '../api';
 
 interface TerminalProps {
   device: Device;
@@ -12,11 +13,15 @@ interface TerminalLine {
 }
 
 export default function Terminal({ device, onBack }: TerminalProps) {
+  const useRealBackend = isBackendAvailable();
   const [lines, setLines] = useState<TerminalLine[]>([
     { type: 'system', content: `Подключение к ${device.name} (${device.ip}:${device.port}) через ${device.connectionType.toUpperCase()}...` },
     { type: 'system', content: `Аутентификация: ${device.login}@${device.ip}` },
     { type: 'system', content: '═══════════════════════════════════════════════' },
-    { type: 'system', content: `Добро пожаловать в интерактивный терминал ${device.systemInfo?.os || ''}` },
+    { type: 'system', content: useRealBackend 
+      ? `Реальный терминал подключён к ${device.systemInfo?.os || ''}`
+      : `Добро пожаловать в интерактивный терминал ${device.systemInfo?.os || ''} (демо-режим)` 
+    },
     { type: 'system', content: 'Введите команду для выполнения на удалённом устройстве.' },
     { type: 'system', content: 'Доступные команды: help, sysinfo, processes, services, network, disk, optimize' },
     { type: 'system', content: '═══════════════════════════════════════════════' },
@@ -24,8 +29,42 @@ export default function Terminal({ device, onBack }: TerminalProps) {
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [ws, setWs] = useState<WebSocket | null>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Подключаем WebSocket если backend доступен
+  useEffect(() => {
+    if (useRealBackend && device.status === 'online') {
+      const socket = createTerminalWebSocket(device.id);
+      if (socket) {
+        socket.onopen = () => {
+          setLines(prev => [...prev, { type: 'system', content: '✅ WebSocket подключён' }]);
+        };
+        
+        socket.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'output' || msg.type === 'system' || msg.type === 'error') {
+              setLines(prev => [...prev, { type: msg.type, content: msg.data }]);
+            }
+          } catch {
+            setLines(prev => [...prev, { type: 'output', content: event.data }]);
+          }
+        };
+        
+        socket.onclose = () => {
+          setLines(prev => [...prev, { type: 'system', content: '⚠️ WebSocket отключён' }]);
+        };
+        
+        setWs(socket);
+        
+        return () => {
+          socket.close();
+        };
+      }
+    }
+  }, [useRealBackend, device.id, device.status]);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -157,17 +196,39 @@ export default function Terminal({ device, onBack }: TerminalProps) {
     return output;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
     const prompt = `${device.login}@${device.systemInfo?.hostname || 'device'}:~$ ${input}`;
-    const newLines: TerminalLine[] = [
-      { type: 'input', content: prompt },
-      ...simulateCommand(input)
-    ];
+    
+    // Если есть WebSocket — отправляем через него
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      setLines(prev => [...prev, { type: 'input', content: prompt }]);
+      ws.send(JSON.stringify({ type: 'input', data: input + '\n' }));
+    } else if (useRealBackend) {
+      // Если нет WebSocket но backend доступен — используем REST API
+      setLines(prev => [...prev, { type: 'input', content: prompt }]);
+      try {
+        const result = await executeCommand(device.id, input);
+        if (result.output) {
+          setLines(prev => [...prev, { type: 'output', content: result.output }]);
+        }
+        if (result.error) {
+          setLines(prev => [...prev, { type: 'error', content: result.error || '' }]);
+        }
+      } catch (error: any) {
+        setLines(prev => [...prev, { type: 'error', content: `Error: ${error.message}` }]);
+      }
+    } else {
+      // Демо-режим
+      const newLines: TerminalLine[] = [
+        { type: 'input', content: prompt },
+        ...simulateCommand(input)
+      ];
+      setLines(prev => [...prev, ...newLines]);
+    }
 
-    setLines(prev => [...prev, ...newLines]);
     setHistory(prev => [input, ...prev]);
     setHistoryIndex(-1);
     setInput('');
@@ -194,6 +255,36 @@ export default function Terminal({ device, onBack }: TerminalProps) {
     }
   };
 
+  const sendQuickCommand = (cmd: string) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const prompt = `${device.login}@${device.systemInfo?.hostname || 'device'}:~$ ${cmd}`;
+      setLines(prev => [...prev, { type: 'input', content: prompt }]);
+      ws.send(JSON.stringify({ type: 'input', data: cmd + '\n' }));
+    } else if (useRealBackend) {
+      const prompt = `${device.login}@${device.systemInfo?.hostname || 'device'}:~$ ${cmd}`;
+      setLines(prev => [...prev, { type: 'input', content: prompt }]);
+      executeCommand(device.id, cmd).then(result => {
+        if (result.output) {
+          setLines(prev => [...prev, { type: 'output', content: result.output }]);
+        }
+        if (result.error) {
+          setLines(prev => [...prev, { type: 'error', content: result.error || '' }]);
+        }
+      });
+    } else {
+      setInput(cmd);
+      setTimeout(() => {
+        const prompt = `${device.login}@${device.systemInfo?.hostname || 'device'}:~$ ${cmd}`;
+        const newLines: TerminalLine[] = [
+          { type: 'input', content: prompt },
+          ...simulateCommand(cmd)
+        ];
+        setLines(prev => [...prev, ...newLines]);
+        setInput('');
+      }, 50);
+    }
+  };
+
   return (
     <div className="p-6 h-full flex flex-col">
       {/* Header */}
@@ -205,6 +296,11 @@ export default function Terminal({ device, onBack }: TerminalProps) {
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <i className="fas fa-terminal text-green-400"></i>
             Терминал — {device.name}
+            {useRealBackend && (
+              <span className="text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded border border-green-500/20">
+                LIVE
+              </span>
+            )}
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -220,7 +316,9 @@ export default function Terminal({ device, onBack }: TerminalProps) {
         <div className="bg-gray-900 border-b border-gray-800 px-4 py-2 flex items-center gap-3">
           <i className="fas fa-terminal text-green-400 text-xs"></i>
           <span className="text-sm text-gray-400">{device.login}@{device.ip} — {device.connectionType.toUpperCase()}</span>
-          <span className="ml-auto text-xs text-gray-600">UTF-8 | bash</span>
+          <span className="ml-auto text-xs text-gray-600">
+            {useRealBackend ? 'UTF-8 | bash (live)' : 'UTF-8 | bash (demo)'}
+          </span>
         </div>
 
         {/* Terminal Content */}
@@ -230,7 +328,7 @@ export default function Terminal({ device, onBack }: TerminalProps) {
           onClick={() => inputRef.current?.focus()}
         >
           {lines.map((line, i) => (
-            <div key={i} className={`mb-0.5 ${
+            <div key={i} className={`mb-0.5 whitespace-pre-wrap ${
               line.type === 'input' ? 'text-white' :
               line.type === 'error' ? 'text-red-400' :
               line.type === 'system' ? 'text-cyan-400' :
@@ -264,18 +362,7 @@ export default function Terminal({ device, onBack }: TerminalProps) {
         {['sysinfo', 'processes', 'services', 'network', 'disk', 'optimize', 'top'].map(cmd => (
           <button
             key={cmd}
-            onClick={() => {
-              setInput(cmd);
-              setTimeout(() => {
-                const prompt = `${device.login}@${device.systemInfo?.hostname || 'device'}:~$ ${cmd}`;
-                const newLines: TerminalLine[] = [
-                  { type: 'input', content: prompt },
-                  ...simulateCommand(cmd)
-                ];
-                setLines(prev => [...prev, ...newLines]);
-                setInput('');
-              }, 50);
-            }}
+            onClick={() => sendQuickCommand(cmd)}
             className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-xs font-mono transition-colors border border-gray-700"
           >
             {cmd}

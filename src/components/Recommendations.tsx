@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Device, Recommendation } from '../types';
+import { applyRecommendation } from '../api';
 
 interface RecommendationsProps {
   device: Device;
@@ -53,8 +54,13 @@ export default function Recommendations({ device, onBack }: RecommendationsProps
     }
   };
 
-  const applyRecommendation = (rec: Recommendation) => {
-    setAppliedRecs(prev => new Set([...prev, rec.id]));
+  const handleApply = async (rec: Recommendation) => {
+    try {
+      await applyRecommendation(device.id, rec.id);
+      setAppliedRecs(prev => new Set([...prev, rec.id]));
+    } catch (error) {
+      console.error('Failed to apply recommendation:', error);
+    }
   };
 
   const criticalCount = recommendations.filter(r => r.severity === 'critical').length;
@@ -158,7 +164,7 @@ export default function Recommendations({ device, onBack }: RecommendationsProps
                     <span className="text-gray-400">{rec.impact}</span>
                   </div>
                   <button
-                    onClick={() => applyRecommendation(rec)}
+                    onClick={() => handleApply(rec)}
                     disabled={appliedRecs.has(rec.id)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                       appliedRecs.has(rec.id)
