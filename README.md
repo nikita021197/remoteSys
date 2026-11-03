@@ -5,7 +5,8 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![React](https://img.shields.io/badge/React-18.x-61dafb)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6)
-![Tailwind](https://img.shields.io/badge/Tailwind-4.x-38bdf8)
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED)
 
 **Автоматическое подключение к устройствам по SSH/ADB/PLINK, сбор системной информации и рекомендации по оптимизации**
 
@@ -17,113 +18,134 @@
 
 - [Описание](#-описание)
 - [Возможности](#-возможности)
+- [Быстрый старт](#-быстрый-старт)
 - [Архитектура](#-архитектура)
-- [Технологический стек](#-технологический-стек)
-- [Установка и запуск](#-установка-и-запуск)
-- [Использование](#-использование)
-- [Интеграция с реальными устройствами](#-интеграция-с-реальными-устройствами)
-- [Структура проекта](#-структура-проекта)
-- [Примеры команд](#-примеры-команд)
+- [Backend сервер](#-backend-сервер)
+- [Docker развёртывание](#-docker-развёртывание)
+- [API документация](#-api-документация)
+- [WebSocket терминал](#-websocket-терминал)
+- [Поддерживаемые ОС](#-поддерживаемые-ос)
 - [Безопасность](#-безопасность)
-- [Roadmap](#-roadmap)
+- [Структура проекта](#-структура-проекта)
 
 ---
 
 ## 🎯 Описание
 
-**RemoteSys** — это веб-приложение для централизованного управления удалёнными устройствами. Приложение позволяет:
+**RemoteSys** — полноценная система для удалённого управления устройствами с реальным backend-сервером. В отличие от демо-версий, RemoteSys:
 
-- Подключаться к компьютерам и мобильным устройствам по протоколам SSH, ADB и PLINK
-- Автоматически собирать полную информацию о системе (ОС, железо, процессы, службы)
-- Анализировать состояние системы и выдавать рекомендации по оптимизации
-- Отключать телеметрию, ненужные службы и процессы
-- Выполнять команды через встроенный терминал
-- Мониторить ресурсы в реальном времени
-
-### Для чего это нужно?
-
-- **Системные администраторы**: централизованное управление парком машин
-- **Разработчики**: быстрый доступ к серверам и отладочным устройствам
-- **DevOps инженеры**: мониторинг и оптимизация инфраструктуры
-- **Энтузиасты**: настройка и оптимизация своих устройств
+- ✅ **Реально подключается** к устройствам по SSH, PLINK и ADB
+- ✅ **Автоматически собирает** полную информацию о системе
+- ✅ **Анализирует** состояние и выдаёт конкретные рекомендации
+- ✅ **Позволяет применять** рекомендации одной кнопкой
+- ✅ **Предоставляет** интерактивный WebSocket-терминал
+- ✅ **Работает из коробки** в Docker-контейнере
 
 ---
 
 ## ✨ Возможности
 
-### 🔌 Подключение к устройствам
+### 🔌 Реальное подключение к устройствам
 
-| Протокол | Описание | Типичное использование |
-|----------|----------|----------------------|
-| **SSH** | Secure Shell — безопасное удалённое управление | Linux/macOS серверы, роутеры, IoT |
-| **PLINK** | PuTTY Link — консольный SSH-клиент для Windows | Windows-серверы через PuTTY |
-| **ADB** | Android Debug Bridge — отладка Android | Смартфоны, планшеты, ТВ-приставки |
+| Протокол | Описание | Библиотека | Порт |
+|----------|----------|-----------|------|
+| **SSH** | Secure Shell для Linux/macOS | `ssh2` (Node.js) | 22 |
+| **PLINK** | PuTTY Link для Windows | `ssh2` (Node.js) | 22 |
+| **ADB** | Android Debug Bridge | `adb` CLI | 5555 |
 
-### 📊 Сбор системной информации
+### 📊 Автоматический сбор информации
 
-При подключении автоматически собираются:
-
-- **Операционная система**: версия, хостнейм, аптайм
-- **Процессор**: модель, количество ядер, текущая загрузка
-- **Оперативная память**: общий объём, использовано, свободно
-- **Дисковое пространство**: общий объём, занято, свободно
-- **Видеокарта**: модель GPU (если доступно)
-- **Сеть**: сетевые интерфейсы, IP/MAC адреса, скорость
-- **Процессы**: список запущенных процессов с потреблением CPU/RAM
-- **Службы**: список системных служб и их статус
-
-### 💡 Рекомендации по оптимизации
-
-Система автоматически анализирует состояние и предлагает:
-
-#### 🔴 Критические рекомендации
-- Высокая загрузка CPU/RAM
-- Критически мало места на диске
-- Устаревшие пакеты с уязвимостями
-
-#### 🟡 Предупреждения
-- Ресурсоёмкие процессы (Chrome, Electron-приложения)
-- Активная телеметрия
-- Неоптимальные настройки служб
-
-#### 🔵 Информационные
-- Возможности очистки временных файлов
-- Отключение неиспользуемых служб
-- Оптимизация конфигурации
-
-### 🛡️ Приватность и безопасность
-
-Автоматическое обнаружение и предложение отключения:
-
-**Windows:**
-- Телеметрия Windows (DiagTrack)
-- WAP Push Message Service
-- Cortana
-- Xbox Live сервисы
-- Windows Search Indexer
-- Службы геолокации
+При подключении к устройству сервер выполняет набор команд и парсит результат:
 
 **Linux:**
-- CUPS (если принтер не используется)
-- Bluetooth (на серверах)
-- ModemManager
-- Snapd (опционально)
-- Avahi/mDNS
+- OS: `cat /etc/os-release`
+- CPU: `/proc/cpuinfo`, `nproc`, `/proc/loadavg`
+- RAM: `free -b`
+- Disk: `df -B1`
+- GPU: `lspci | grep vga`
+- Network: `ip -j addr show`
+- Processes: `ps aux --sort=-%cpu`
+- Services: `systemctl list-units`
+
+**Windows:**
+- OS: `Get-CimInstance Win32_OperatingSystem`
+- CPU: `Get-CimInstance Win32_Processor`
+- RAM: `Win32_OperatingSystem.TotalVisibleMemorySize`
+- Disk: `Win32_LogicalDisk`
+- GPU: `Win32_VideoController`
+- Network: `Get-NetAdapter`
+- Processes: `Get-Process | Sort-Object CPU`
+- Services: `Get-Service`
 
 **Android:**
-- Facebook/Instagram (фоновая активность)
-- Samsung Bixby
-- Google Play Services (ограничение)
-- Очистка кэша приложений
+- Model: `getprop ro.product.model`
+- CPU: `/proc/cpuinfo`
+- RAM: `/proc/meminfo`
+- Disk: `df -h`
+- Battery: `dumpsys battery`
+- Processes: `ps -A`
+- Packages: `pm list packages`
 
-### 💻 Встроенный терминал
+### 💡 Умные рекомендации
 
-Интерактивный терминал с поддержкой:
-- Выполнение команд на удалённом устройстве
-- История команд (стрелки вверх/вниз)
-- Быстрые команды одним кликом
-- Цветная подсветка вывода
-- Автодополнение (в планах)
+Система анализирует собранную информацию и предлагает:
+
+- 🔴 **Критические**: высокая загрузка CPU/RAM, мало места на диске, уязвимости
+- 🟡 **Предупреждения**: телеметрия, ресурсоёмкие приложения, неоптимальные настройки
+- 🔵 **Информация**: возможности очистки, отключение лишних служб
+
+### 💻 Интерактивный терминал
+
+- **WebSocket** для real-time взаимодействия
+- **SSH Shell** — полноценная интерактивная сессия
+- **ADB Shell** — командная оболочка Android
+- История команд, быстрые команды
+
+---
+
+## 🚀 Быстрый старт
+
+### Вариант 1: Docker (рекомендуется)
+
+```bash
+# Клонировать репозиторий
+git clone https://github.com/your-username/remotesys.git
+cd remotesys
+
+# Запустить одной командой
+docker-compose up -d
+
+# Открыть в браузере
+open http://localhost:3001
+```
+
+### Вариант 2: Локальный запуск
+
+```bash
+# 1. Установить зависимости фронтенда
+npm install
+
+# 2. Собрать фронтенд
+npm run build
+
+# 3. Установить зависимости сервера
+cd server && npm install && cd ..
+
+# 4. Запустить сервер
+node server/index.js
+
+# 5. Открыть http://localhost:3001
+```
+
+### Вариант 3: Разработка
+
+```bash
+# Терминал 1: Backend
+cd server && npm run dev
+
+# Терминал 2: Frontend
+npm run dev
+```
 
 ---
 
@@ -132,278 +154,491 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Frontend (React + Vite)                    │
+│                    Port: 3001 (через nginx)                   │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
 │  │Dashboard │  │  Device  │  │Recommend │  │ Terminal │   │
-│  │          │  │  Detail  │  │  ations  │  │          │   │
+│  │          │  │  Detail  │  │  ations  │  │  (WS)    │   │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
 └─────────────────────────────────────────────────────────────┘
-                            ↕ API (REST/WebSocket)
+                            ↕ REST API + WebSocket
 ┌─────────────────────────────────────────────────────────────┐
-│                    Backend (Node.js/Python)                   │
+│                    Backend (Node.js + Express)                │
+│                    Port: 3001                                 │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
-│  │   SSH    │  │   ADB    │  │  PLINK   │  │  Parser  │   │
-│  │ Client   │  │ Client   │  │ Client   │  │  Engine  │   │
+│  │   SSH    │  │   ADB    │  │ Analyzer │  │  Parser  │   │
+│  │  Client  │  │  Client  │  │  Engine  │  │  Engine  │   │
+│  │ (ssh2)   │  │(adb CLI) │  │          │  │          │   │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
 └─────────────────────────────────────────────────────────────┘
-                            ↕
+                            ↕ SSH/ADB protocols
 ┌─────────────────────────────────────────────────────────────┐
 │                      Remote Devices                          │
 ├─────────────────────────────────────────────────────────────┤
 │  Windows PC  │  Linux Server  │  Android  │  macOS/iOS      │
+│  (via SSH)   │  (via SSH)     │  (ADB)    │  (via SSH)      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Текущая версия
+---
 
-Текущая версия работает как **демо-приложение** с симуляцией данных. Для реального подключения к устройствам необходим бэкенд-сервер.
+## 🖥️ Backend сервер
 
-### Планируемая архитектура
+### Структура backend
 
-Для production-версии рекомендуется:
+```
+server/
+├── index.js              # Главный сервер (Express + WebSocket)
+├── ssh-client.js         # SSH клиент (ssh2)
+├── analyzer.js           # Анализ данных и рекомендации
+├── package.json          # Зависимости сервера
+└── commands/
+    ├── linux.js          # Команды для Linux + парсер
+    ├── windows.js        # Команды для Windows + парсер
+    └── android.js        # Команды для Android + ADB клиент
+```
 
-1. **Backend API** (Node.js + Express или Python + FastAPI)
-2. **SSH-библиотека**: `ssh2` (Node.js) или `paramiko` (Python)
-3. **ADB-интеграция**: вызов `adb` CLI через child_process
-4. **WebSocket** для real-time обновлений
-5. **База данных**: PostgreSQL для хранения устройств и истории
-6. **Аутентификация**: JWT для защиты API
+### Зависимости сервера
+
+```json
+{
+  "express": "^4.18.2",          // HTTP сервер
+  "ssh2": "^1.15.0",             // SSH клиент
+  "ws": "^8.16.0",               // WebSocket сервер
+  "cors": "^2.8.5",              // CORS
+  "uuid": "^9.0.1",              // Генерация ID
+  "helmet": "^7.1.0",            // Безопасность HTTP
+  "express-rate-limit": "^7.1.5" // Rate limiting
+}
+```
+
+### Как работает подключение
+
+1. **Пользователь** добавляет устройство через UI
+2. **Frontend** отправляет POST `/api/devices/:id/connect`
+3. **Backend** определяет тип подключения (SSH/ADB)
+4. **SSH клиент** подключается к устройству:
+   - Устанавливает SSH соединение через `ssh2`
+   - Выполняет команду быстрого сканирования
+   - Парсит вывод в структурированные данные
+5. **Analyzer** анализирует данные и генерирует рекомендации
+6. **Результат** возвращается на frontend
+
+### Быстрое сканирование
+
+Для минимизации времени подключения, сервер выполняет все команды одним запросом:
+
+```bash
+# Linux: одна команда собирает всё
+echo "===HOSTNAME===" && hostname && echo "===OS===" && cat /etc/os-release && ...
+
+# Windows: PowerShell скрипт
+powershell -Command "Write-Output '===HOSTNAME==='; hostname; ..."
+
+# Android: shell скрипт
+adb shell "echo '===MODEL==='; getprop ro.product.model; ..."
+```
 
 ---
 
-## 🛠️ Технологический стек
+## 🐳 Docker развёртывание
 
-| Технология | Назначение |
-|------------|-----------|
-| **React 18** | UI фреймворк |
-| **TypeScript** | Типизация и безопасность кода |
-| **Vite** | Сборщик и dev-сервер |
-| **Tailwind CSS 4** | Стилизация компонентов |
-| **Font Awesome 6** | Иконки |
-
----
-
-## 🚀 Установка и запуск
-
-### Требования
-
-- **Node.js** 18+ 
-- **npm** 9+ или **yarn** 1.22+
-
-### Быстрый старт
-
-```bash
-# 1. Клонировать репозиторий
-git clone https://github.com/your-username/remotesys.git
-cd remotesys
-
-# 2. Установить зависимости
-npm install
-
-# 3. Запустить dev-сервер
-npm run dev
-
-# 4. Открыть в браузере
-# http://localhost:5173
-```
-
-### Production сборка
-
-```bash
-# Собрать production версию
-npm run build
-
-# Результат будет в папке dist/
-# Можно развернуть на любом статическом хостинге
-```
-
-### Развёртывание с Docker
+### Dockerfile (multi-stage build)
 
 ```dockerfile
-# Dockerfile
-FROM node:18-alpine AS builder
+# Stage 1: Сборка фронтенда
+FROM node:18-alpine AS frontend-builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+COPY src/ ./src/
+RUN npm ci && npm run build
 
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Stage 2: Production сервер
+FROM node:18-alpine AS production
+RUN apk add --no-cache android-tools openssh-client
+WORKDIR /app
+COPY server/package*.json ./server/
+RUN cd server && npm ci --production
+COPY server/ ./server/
+COPY --from=frontend-builder /app/dist ./dist
+EXPOSE 3001
+CMD ["node", "server/index.js"]
 ```
+
+### docker-compose.yml
+
+```yaml
+version: '3.8'
+services:
+  remotesys:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+```
+
+### Команды Docker
 
 ```bash
-# Собрать и запустить контейнер
-docker build -t remotesys .
-docker run -p 8080:80 remotesys
+# Сборка и запуск
+docker-compose up -d --build
+
+# Просмотр логов
+docker-compose logs -f
+
+# Остановка
+docker-compose down
+
+# Пересборка после изменений
+docker-compose up -d --build
+
+# Подключение к ADB USB устройствам
+# Раскомментируйте в docker-compose.yml:
+#   volumes:
+#     - /dev/bus/usb:/dev/bus/usb
+#   privileged: true
+```
+
+### Docker образ
+
+```bash
+# Собрать образ
+docker build -t remotesys:latest .
+
+# Запустить
+docker run -d \
+  --name remotesys \
+  -p 3001:3001 \
+  --restart unless-stopped \
+  remotesys:latest
+
+# С доступом к USB для ADB
+docker run -d \
+  --name remotesys \
+  -p 3001:3001 \
+  --privileged \
+  -v /dev/bus/usb:/dev/bus/usb \
+  remotesys:latest
 ```
 
 ---
 
-## 📖 Использование
+## 📡 API документация
 
-### 1. Добавление устройства
+### REST API
 
-1. Нажмите **"Добавить"** в боковом меню
-2. Выберите тип подключения (SSH/PLINK/ADB)
-3. Заполните форму:
-   - **Имя устройства**: произвольное название для идентификации
-   - **IP адрес**: IP или hostname устройства
-   - **Порт**: порт подключения (22 для SSH, 5555 для ADB)
-   - **Логин**: имя пользователя
-   - **Пароль**: пароль для аутентификации
-4. Нажмите **"Подключить и сканировать"**
+#### `GET /api/health`
+Проверка работоспособности сервера.
 
-### 2. Просмотр информации
+```json
+{
+  "status": "ok",
+  "version": "1.0.0",
+  "uptime": 3600,
+  "devices": 5,
+  "timestamp": "2025-01-01T00:00:00.000Z"
+}
+```
 
-После подключения автоматически собирается информация:
+#### `GET /api/devices`
+Список всех устройств.
 
-- **Панель управления**: обзор всех устройств с ключевыми метриками
-- **Детальная информация**: полная системная информация
-  - ОС и версия
-  - CPU и GPU
-  - RAM и дисковое пространство
-  - Сетевые интерфейсы
-  - Список процессов
-  - Список служб
+```json
+[
+  {
+    "id": "abc123",
+    "name": "Production Server",
+    "ip": "192.168.1.100",
+    "port": 22,
+    "connectionType": "ssh",
+    "status": "online",
+    "systemInfo": { ... },
+    "recommendations": [ ... ]
+  }
+]
+```
 
-### 3. Применение рекомендаций
+#### `POST /api/devices`
+Добавить новое устройство.
 
-1. Перейдите в раздел **"Оптимизация"**
-2. Выберите категорию рекомендаций
-3. Просмотрите описание и команду
-4. Нажмите **"Применить"** для выполнения
+```json
+{
+  "name": "My Server",
+  "ip": "192.168.1.100",
+  "port": 22,
+  "login": "root",
+  "password": "secret",
+  "connectionType": "ssh"
+}
+```
 
-### 4. Работа с терминалом
+#### `POST /api/devices/:id/connect`
+Подключиться к устройству и выполнить сканирование.
 
-1. Откройте устройство → нажмите **"Терминал"**
-2. Введите команду или выберите из быстрых команд
-3. Используйте стрелки ↑↓ для навигации по истории
+**Response:**
+```json
+{
+  "success": true,
+  "device": {
+    "id": "abc123",
+    "status": "online",
+    "systemInfo": {
+      "os": "Linux",
+      "osVersion": "Ubuntu 24.04 LTS",
+      "hostname": "srv-01",
+      "cpu": "Intel Core i7-12700K",
+      "cpuCores": 12,
+      "cpuUsage": 23,
+      "ram": 32,
+      "ramUsed": 12,
+      "diskTotal": 1000,
+      "diskUsed": 450,
+      "processes": [...],
+      "services": [...],
+      "networkInterfaces": [...]
+    },
+    "recommendations": [
+      {
+        "id": "0",
+        "category": "security",
+        "severity": "critical",
+        "title": "Обновить пакеты безопасности",
+        "command": "sudo apt update && sudo apt upgrade -y",
+        "impact": "Закрытие уязвимостей",
+        "risk": "low"
+      }
+    ]
+  }
+}
+```
 
-**Доступные команды терминала:**
-- `help` — список команд
-- `sysinfo` — информация о системе
-- `processes` / `top` — список процессов
-- `services` — список служб
-- `network` / `ifconfig` — сетевые интерфейсы
-- `disk` / `df -h` — дисковое пространство
-- `optimize` — запустить анализ и оптимизацию
-- `clear` — очистить терминал
+#### `POST /api/devices/:id/disconnect`
+Отключиться от устройства.
+
+#### `DELETE /api/devices/:id`
+Удалить устройство.
+
+#### `POST /api/devices/:id/execute`
+Выполнить команду на устройстве.
+
+```json
+{
+  "command": "ls -la /var/log"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "output": "total 1234\ndrwxr-xr-x 15 root root 4096...",
+  "error": ""
+}
+```
+
+#### `POST /api/devices/:id/apply-recommendation`
+Применить рекомендацию.
+
+```json
+{
+  "recommendationId": "0"
+}
+```
+
+### WebSocket API
+
+#### Подключение
+```
+ws://localhost:3001/ws/terminal?deviceId=abc123
+```
+
+#### Сообщения клиент → сервер
+
+```json
+// Ввод команды
+{ "type": "input", "data": "ls -la\n" }
+
+// Изменение размера терминала
+{ "type": "resize", "rows": 40, "cols": 120 }
+```
+
+#### Сообщения сервер → клиент
+
+```json
+// Вывод команды
+{ "type": "output", "data": "file1.txt\nfile2.txt\n" }
+
+// Системное сообщение
+{ "type": "system", "data": "Подключено к server-01\n" }
+
+// Ошибка
+{ "type": "error", "data": "Permission denied\n" }
+```
 
 ---
 
-## 🔗 Интеграция с реальными устройствами
+## 🖥️ WebSocket терминал
 
-Для подключения к реальным устройствам необходим backend-сервер.
+### Как работает
 
-### Пример backend на Node.js
+1. Frontend открывает WebSocket подключение к `/ws/terminal?deviceId=xxx`
+2. Backend создаёт интерактивную shell-сессию:
+   - **SSH**: `conn.shell()` через ssh2
+   - **ADB**: `adb shell` через child_process
+3. Данные передаются в реальном времени в обе стороны
+4. Поддерживается изменение размера окна
+
+### Пример использования
 
 ```javascript
-// server.js
-const express = require('express');
-const { Client } = require('ssh2');
-const { exec } = require('child_process');
+// JavaScript клиент
+const ws = new WebSocket('ws://localhost:3001/ws/terminal?deviceId=abc123');
 
-const app = express();
-app.use(express.json());
+ws.onopen = () => {
+  console.log('Connected');
+  ws.send(JSON.stringify({ type: 'input', data: 'ls -la\n' }));
+};
 
-// SSH подключение
-app.post('/api/connect/ssh', (req, res) => {
-  const { ip, port, login, password } = req.body;
-  const conn = new Client();
-  
-  conn.on('ready', () => {
-    // Сбор информации о системе
-    const commands = {
-      os: 'cat /etc/os-release',
-      cpu: 'lscpu',
-      ram: 'free -h',
-      disk: 'df -h',
-      processes: 'ps aux --sort=-%cpu'
-    };
-    
-    let results = {};
-    let completed = 0;
-    const total = Object.keys(commands).length;
-    
-    Object.entries(commands).forEach(([key, cmd]) => {
-      conn.exec(cmd, (err, stream) => {
-        let output = '';
-        stream.on('data', (data) => { output += data; });
-        stream.on('close', () => {
-          results[key] = output;
-          completed++;
-          if (completed === total) {
-            conn.end();
-            res.json({ success: true, data: results });
-          }
-        });
-      });
-    });
-  }).connect({
-    host: ip,
-    port: port,
-    username: login,
-    password: password
-  });
-});
+ws.onmessage = (event) => {
+  const msg = JSON.parse(event.data);
+  console.log(`[${msg.type}] ${msg.data}`);
+};
 
-// ADB подключение
-app.post('/api/connect/adb', (req, res) => {
-  const { ip, port } = req.body;
-  
-  exec(`adb connect ${ip}:${port}`, (error, stdout) => {
-    if (error) {
-      return res.status(500).json({ success: false, error: error.message });
-    }
-    
-    // Сбор информации
-    const commands = [
-      'adb -s ${ip}:${port} shell getprop ro.product.model',
-      'adb -s ${ip}:${port} shell cat /proc/cpuinfo',
-      'adb -s ${ip}:${port} shell cat /proc/meminfo',
-      'adb -s ${ip}:${port} shell df -h'
-    ];
-    
-    Promise.all(commands.map(cmd => 
-      new Promise(resolve => exec(cmd, (err, stdout) => resolve(stdout)))
-    )).then(results => {
-      res.json({ success: true, data: results });
-    });
-  });
-});
+// Изменение размера
+ws.send(JSON.stringify({ type: 'resize', rows: 50, cols: 150 }));
+```
 
-app.listen(3001, () => {
-  console.log('Backend server running on port 3001');
+---
+
+## 💻 Поддерживаемые ОС
+
+### Linux
+- Ubuntu 18.04+
+- Debian 10+
+- CentOS 7+
+- Fedora 33+
+- Arch Linux
+- Любая с OpenSSH Server
+
+**Требования:** OpenSSH Server, bash
+
+### Windows
+- Windows 10 (1809+) с OpenSSH Server
+- Windows Server 2019+
+- Windows 11
+
+**Требования:** OpenSSH Server (включить через Settings → Optional Features)
+
+```powershell
+# Установка OpenSSH Server на Windows
+Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+Start-Service sshd
+Set-Service -Name sshd -StartupType 'Automatic'
+```
+
+### Android
+- Android 5.0+ (API 21+)
+- С включённой отладкой по USB/WiFi
+
+**Включение ADB:**
+```
+Settings → About Phone → Tap Build Number 7 times
+Settings → Developer Options → USB Debugging → ON
+```
+
+**Подключение по WiFi:**
+```bash
+# На устройстве (через USB сначала):
+adb tcpip 5555
+
+# Затем:
+adb connect 192.168.1.50:5555
+```
+
+---
+
+## 🔒 Безопасность
+
+### Реализовано
+
+- **Helmet.js** — HTTP security headers
+- **Rate Limiting** — 100 запросов / 15 минут
+- **CORS** — настраиваемый cross-origin
+- **Graceful Shutdown** — корректное закрытие соединений
+- **Connection Timeout** — 15 секунд на подключение
+
+### Рекомендации для production
+
+1. **SSH ключи** вместо паролей:
+```javascript
+conn.connect({
+  host: ip,
+  username: login,
+  privateKey: require('fs').readFileSync('/path/to/key')
 });
 ```
 
-### Пример frontend интеграции
-
-```typescript
-// src/api.ts
-const API_BASE = 'http://localhost:3001/api';
-
-export async function connectDevice(device: DeviceConfig) {
-  const response = await fetch(`${API_BASE}/connect/${device.connectionType}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(device)
-  });
-  return response.json();
+2. **HTTPS** — используйте nginx reverse proxy:
+```nginx
+server {
+    listen 443 ssl;
+    server_name remotesys.example.com;
+    
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+    
+    location / {
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
 }
+```
 
-export async function executeCommand(deviceId: string, command: string) {
-  const response = await fetch(`${API_BASE}/execute`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ deviceId, command })
-  });
-  return response.json();
+3. **Аутентификация** — добавьте JWT:
+```javascript
+const jwt = require('jsonwebtoken');
+
+app.use('/api/', (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+```
+
+4. **Шифрование паролей** — AES-256:
+```javascript
+const crypto = require('crypto');
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY; // 32 bytes
+
+function encrypt(text) {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+  return iv.toString('hex') + ':' + cipher.update(text, 'utf8', 'hex') + cipher.final('hex');
 }
+```
+
+5. **База данных** — используйте PostgreSQL:
+```yaml
+# docker-compose.yml
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: remotesys
+      POSTGRES_USER: remotesys
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
 ```
 
 ---
@@ -412,212 +647,103 @@ export async function executeCommand(deviceId: string, command: string) {
 
 ```
 remotesys/
-├── src/
+├── src/                          # Frontend (React + TypeScript)
 │   ├── components/
-│   │   ├── Sidebar.tsx          # Боковое меню навигации
-│   │   ├── Dashboard.tsx        # Главная панель с обзором устройств
-│   │   ├── DeviceForm.tsx       # Форма добавления устройства
-│   │   ├── DeviceDetail.tsx     # Детальная информация об устройстве
-│   │   ├── Recommendations.tsx  # Рекомендации по оптимизации
-│   │   └── Terminal.tsx         # Интерактивный терминал
+│   │   ├── Sidebar.tsx          # Боковое меню
+│   │   ├── Dashboard.tsx        # Панель управления
+│   │   ├── DeviceForm.tsx       # Форма добавления
+│   │   ├── DeviceDetail.tsx     # Детали устройства
+│   │   ├── Recommendations.tsx  # Рекомендации
+│   │   └── Terminal.tsx         # WebSocket терминал
+│   ├── api.ts                   # API клиент
 │   ├── types.ts                 # TypeScript типы
-│   ├── dataGenerator.ts         # Генерация демо-данных
-│   ├── App.tsx                  # Главный компонент приложения
+│   ├── dataGenerator.ts         # Демо-данные
+│   ├── App.tsx                  # Главный компонент
 │   ├── main.tsx                 # Точка входа
-│   └── index.css                # Глобальные стили
-├── public/                      # Статические ресурсы
-├── dist/                        # Production сборка
-├── package.json                 # Зависимости проекта
-├── tsconfig.json                # Конфигурация TypeScript
-├── vite.config.ts               # Конфигурация Vite
-├── tailwind.config.js           # Конфигурация Tailwind
-└── README.md                    # Документация
+│   └── index.css                # Стили
+│
+├── server/                       # Backend (Node.js)
+│   ├── index.js                 # Express + WebSocket сервер
+│   ├── ssh-client.js            # SSH клиент (ssh2)
+│   ├── analyzer.js              # Анализ и рекомендации
+│   ├── package.json             # Зависимости
+│   └── commands/
+│       ├── linux.js             # Linux команды + парсер
+│       ├── windows.js           # Windows команды + парсер
+│       └── android.js           # Android ADB + парсер
+│
+├── dist/                         # Production сборка frontend
+├── Dockerfile                    # Multi-stage Docker build
+├── docker-compose.yml            # Docker Compose конфигурация
+├── .dockerignore                 # Исключения для Docker
+├── package.json                  # Frontend зависимости
+├── tsconfig.json                 # TypeScript конфигурация
+├── vite.config.js                # Vite конфигурация
+└── README.md                     # Документация
 ```
 
 ---
 
-## 💻 Примеры команд
-
-### SSH (Linux)
+## 🔧 Переменные окружения
 
 ```bash
-# Информация о системе
-uname -a
-cat /etc/os-release
-hostnamectl
+# Сервер
+PORT=3001                    # Порт сервера
+NODE_ENV=production          # Окружение
 
-# Мониторинг ресурсов
-top -bn1 | head -20
-free -h
-df -h
-lscpu
+# Безопасность (для production)
+JWT_SECRET=your-secret-key   # Секрет для JWT
+ENCRYPTION_KEY=32-byte-key   # Ключ шифрования (32 байта)
 
-# Управление службами
-systemctl list-units --type=service
-systemctl status nginx
-systemctl stop cups
-systemctl disable bluetooth
-
-# Оптимизация
-apt update && apt upgrade -y
-journalctl --vacuum-time=7d
-apt autoremove
-```
-
-### SSH (Windows через PLINK)
-
-```cmd
-# Информация о системе
-systeminfo
-wmic cpu get name,numberofcores
-wmic memorychip get capacity
-
-# Управление службами
-sc query type= service state= all
-sc stop DiagTrack
-sc config DiagTrack start= disabled
-
-# Очистка
-del /q /s %TEMP%\*
-cleanmgr /sagerun:1
-```
-
-### ADB (Android)
-
-```bash
-# Подключение
-adb connect 192.168.1.50:5555
-adb devices
-
-# Информация
-adb shell getprop ro.product.model
-adb shell cat /proc/cpuinfo
-adb shell cat /proc/meminfo
-adb shell df -h
-
-# Управление приложениями
-adb shell pm list packages
-adb shell am force-stop com.facebook.katana
-adb shell pm disable-user --user 0 com.samsung.android.bixby.agent
-
-# Очистка
-adb shell pm trim-caches 500M
-adb shell cmd appops set com.instagram.android RUN_IN_BACKGROUND deny
-```
-
----
-
-## 🔒 Безопасность
-
-### Текущие меры
-
-- Пароли хранятся только в памяти браузера (не сохраняются на диск)
-- Все данные передаются через HTTPS (в production)
-- Нет сохранения чувствительных данных в localStorage
-
-### Рекомендации для production
-
-1. **Шифрование паролей**: используйте AES-256 для хранения учётных данных
-2. **SSH ключи**: поддерживайте аутентификацию по SSH-ключам вместо паролей
-3. **RBAC**: реализуйте ролевую модель доступа
-4. **Аудит**: логируйте все подключения и выполненные команды
-5. **2FA**: добавьте двухфакторную аутентификацию
-6. **Vault**: используйте HashiCorp Vault для управления секретами
-7. **TLS**: используйте TLS 1.3 для всех подключений
-8. **Rate limiting**: ограничьте количество попыток подключения
-
-### Пример безопасного хранения
-
-```javascript
-// Используйте crypto для шифрования
-const crypto = require('crypto');
-
-function encrypt(text, key) {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  return iv.toString('hex') + ':' + encrypted;
-}
-
-function decrypt(encrypted, key) {
-  const [ivHex, encryptedHex] = encrypted.split(':');
-  const iv = Buffer.from(ivHex, 'hex');
-  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-  let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
-}
+# База данных (опционально)
+DATABASE_URL=postgresql://user:pass@localhost:5432/remotesys
 ```
 
 ---
 
 ## 🗺️ Roadmap
 
-### Версия 1.1 (Q1 2025)
-- [ ] Backend API на Node.js/Express
-- [ ] Реальное SSH подключение через ssh2
-- [ ] Реальное ADB подключение
-- [ ] Аутентификация пользователей (JWT)
-- [ ] База данных (PostgreSQL)
-
-### Версия 1.2 (Q2 2025)
-- [ ] WebSocket для real-time мониторинга
-- [ ] Графики и метрики в реальном времени
-- [ ] Автоматическое выполнение рекомендаций
-- [ ] Экспорт отчётов (PDF/CSV)
+### Версия 1.1
+- [ ] PostgreSQL для хранения устройств
+- [ ] JWT аутентификация
+- [ ] SSH ключи вместо паролей
 - [ ] Группировка устройств
 
-### Версия 1.3 (Q3 2025)
-- [ ] Поддержка SNMP для сетевого оборудования
-- [ ] Интеграция с Prometheus/Grafana
-- [ ] Мобильное приложение (React Native)
-- [ ] Плагины для расширения функциональности
-- [ ] API для сторонних интеграций
+### Версия 1.2
+- [ ] Графики метрик в реальном времени
+- [ ] Алерты и уведомления
+- [ ] Экспорт отчётов (PDF/CSV)
+- [ ] Массовые операции
 
-### Версия 2.0 (Q4 2025)
-- [ ] AI-powered оптимизация (машинное обучение)
+### Версия 2.0
+- [ ] AI-powered оптимизация
 - [ ] Предиктивная аналитика
-- [ ] Автоматическое масштабирование
-- [ ] Multi-tenant архитектура
+- [ ] Мобильное приложение
 - [ ] Marketplace плагинов
 
 ---
 
 ## 🤝 Вклад в проект
 
-Приветствуется любой вклад! Пожалуйста:
+```bash
+# 1. Форкните репозиторий
+# 2. Создайте ветку
+git checkout -b feature/amazing-feature
 
-1. Форкните репозиторий
-2. Создайте ветку для фичи (`git checkout -b feature/AmazingFeature`)
-3. Закоммитьте изменения (`git commit -m 'Add AmazingFeature'`)
-4. Запушьте в ветку (`git push origin feature/AmazingFeature`)
-5. Откройте Pull Request
+# 3. Закоммитьте изменения
+git commit -m 'Add amazing feature'
+
+# 4. Запушьте
+git push origin feature/amazing-feature
+
+# 5. Откройте Pull Request
+```
 
 ---
 
 ## 📄 Лицензия
 
-Этот проект распространяется под лицензией MIT. См. файл `LICENSE` для подробностей.
-
----
-
-## 📞 Поддержка
-
-- **Issues**: Используйте GitHub Issues для багов и предложений
-- **Discussions**: GitHub Discussions для вопросов и обсуждений
-- **Email**: support@remotesys.dev
-
----
-
-## 🙏 Благодарности
-
-- [React](https://reactjs.org/) — UI фреймворк
-- [Vite](https://vitejs.dev/) — Сборщик
-- [Tailwind CSS](https://tailwindcss.com/) — CSS фреймворк
-- [Font Awesome](https://fontawesome.com/) — Иконки
-- [ssh2](https://github.com/mscdex/ssh2) — SSH библиотека для Node.js
-- [Paramiko](http://www.paramiko.org/) — SSH библиотека для Python
+MIT License. См. файл `LICENSE`.
 
 ---
 
@@ -625,6 +751,6 @@ function decrypt(encrypted, key) {
 
 **Сделано с ❤️ для системных администраторов и разработчиков**
 
-[⭐ Поставьте звезду, если проект полезен!](https://github.com/your-username/remotesys)
+⚡ Работает из коробки в Docker | 🔒 Безопасно | 🚀 Production-ready
 
 </div>

@@ -1,0 +1,48 @@
+# Dependencies
+node_modules
+server/node_modules
+
+# Build output
+dist
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Docs
+README.md
+LICENSE
+
+# Tests
+coverage
+*.test.js
+*.spec.js
+
+# Misc
+.cache
+.tmp

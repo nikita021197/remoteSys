@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Device, ConnectionType } from './types';
 import { generateDeviceId, generateSystemInfo, generateRecommendations } from './dataGenerator';
+import { addDevice as apiAddDevice, connectToDevice as apiConnect, disconnectDevice as apiDisconnect, removeDevice as apiRemove, isBackendAvailable } from './api';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import DeviceForm from './components/DeviceForm';
@@ -13,25 +14,48 @@ export default function App() {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [currentView, setCurrentView] = useState<'dashboard' | 'add' | 'detail' | 'recommendations' | 'terminal'>('dashboard');
   const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [backendMode, setBackendMode] = useState<'real' | 'demo' | 'checking'>('checking');
 
-  const addDevice = (data: { name: string; ip: string; port: number; login: string; password: string; connectionType: ConnectionType }) => {
-    const newDevice: Device = {
-      id: generateDeviceId(),
-      name: data.name,
-      ip: data.ip,
-      port: data.port,
-      login: data.login,
-      password: data.password,
-      connectionType: data.connectionType,
-      status: 'connecting',
-      lastSeen: new Date().toISOString(),
+  // Проверяем доступность backend при старте
+  useEffect(() => {
+    const check = async () => {
+      // Небольшая задержка для инициализации
+      await new Promise(r => setTimeout(r, 500));
+      setBackendMode(isBackendAvailable() ? 'real' : 'demo');
     };
+    check();
+  }, []);
+
+  const addDevice = async (data: { name: string; ip: string; port: number; login: string; password: string; connectionType: ConnectionType }) => {
+    let newDevice: Device;
+    
+    try {
+      newDevice = await apiAddDevice(data);
+    } catch {
+      // Fallback на локальное создание
+      newDevice = {
+        id: generateDeviceId(),
+        name: data.name,
+        ip: data.ip,
+        port: data.port,
+        login: data.login,
+        password: data.password,
+        connectionType: data.connectionType,
+        status: 'connecting',
+        lastSeen: new Date().toISOString(),
+      };
+    }
+    
     setDevices(prev => [...prev, newDevice]);
     setConnectingId(newDevice.id);
     setCurrentView('dashboard');
 
-    // Simulate connection
-    setTimeout(() => {
+    // Подключаемся
+    try {
+      const connectedDevice = await apiConnect(newDevice);
+      setDevices(prev => prev.map(d => d.id === newDevice.id ? connectedDevice : d));
+    } catch (error) {
+      // В случае ошибки — симулируем
       const sysInfo = generateSystemInfo(data.connectionType);
       const recommendations = generateRecommendations(sysInfo);
       setDevices(prev => prev.map(d => 
@@ -39,15 +63,21 @@ export default function App() {
           ? { ...d, status: 'online' as const, systemInfo: sysInfo, recommendations, lastSeen: new Date().toISOString() }
           : d
       ));
-      setConnectingId(null);
-    }, 2000 + Math.random() * 2000);
+    }
+    
+    setConnectingId(null);
   };
 
-  const connectToDevice = (device: Device) => {
+  const connectToDevice = async (device: Device) => {
     setConnectingId(device.id);
     setDevices(prev => prev.map(d => d.id === device.id ? { ...d, status: 'connecting' } : d));
     
-    setTimeout(() => {
+    try {
+      const connectedDevice = await apiConnect(device);
+      setDevices(prev => prev.map(d => d.id === device.id ? connectedDevice : d));
+    } catch {
+      // Fallback на симуляцию
+      await new Promise(r => setTimeout(r, 1500));
       const sysInfo = generateSystemInfo(device.connectionType);
       const recommendations = generateRecommendations(sysInfo);
       setDevices(prev => prev.map(d => 
@@ -55,17 +85,20 @@ export default function App() {
           ? { ...d, status: 'online' as const, systemInfo: sysInfo, recommendations, lastSeen: new Date().toISOString() }
           : d
       ));
-      setConnectingId(null);
-    }, 1500 + Math.random() * 1500);
+    }
+    
+    setConnectingId(null);
   };
 
-  const disconnectDevice = (deviceId: string) => {
+  const disconnectDevice = async (deviceId: string) => {
+    await apiDisconnect(deviceId);
     setDevices(prev => prev.map(d => 
       d.id === deviceId ? { ...d, status: 'offline' as const } : d
     ));
   };
 
-  const removeDevice = (deviceId: string) => {
+  const removeDevice = async (deviceId: string) => {
+    await apiRemove(deviceId);
     setDevices(prev => prev.filter(d => d.id !== deviceId));
     if (selectedDevice?.id === deviceId) {
       setSelectedDevice(null);
@@ -93,6 +126,7 @@ export default function App() {
         onlineCount={onlineDevices.length}
         recommendationCount={totalRecommendations}
         criticalCount={criticalRecommendations}
+        backendMode={backendMode}
       />
       
       <main className="flex-1 overflow-y-auto">

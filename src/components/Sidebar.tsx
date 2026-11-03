@@ -5,9 +5,10 @@ interface SidebarProps {
   onlineCount: number;
   recommendationCount: number;
   criticalCount: number;
+  backendMode: 'real' | 'demo' | 'checking';
 }
 
-export default function Sidebar({ currentView, setCurrentView, deviceCount, onlineCount, recommendationCount, criticalCount }: SidebarProps) {
+export default function Sidebar({ currentView, setCurrentView, deviceCount, onlineCount, recommendationCount, criticalCount, backendMode }: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', icon: 'fa-server', label: 'Устройства', badge: `${onlineCount}/${deviceCount}` },
     { id: 'add', icon: 'fa-plus-circle', label: 'Добавить', badge: null },
@@ -57,11 +58,11 @@ export default function Sidebar({ currentView, setCurrentView, deviceCount, onli
       </nav>
 
       {/* Status */}
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-gray-800 space-y-3">
         <div className="bg-gray-800/50 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <div className={`w-2 h-2 rounded-full ${onlineCount > 0 ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></div>
-            <span className="text-xs text-gray-400">Система</span>
+            <span className="text-xs text-gray-400">Устройства</span>
           </div>
           <div className="grid grid-cols-2 gap-2 text-center">
             <div>
@@ -73,6 +74,33 @@ export default function Sidebar({ currentView, setCurrentView, deviceCount, onli
               <div className="text-xs text-gray-500">Оффлайн</div>
             </div>
           </div>
+        </div>
+
+        {/* Backend Status */}
+        <div className={`rounded-lg p-3 border ${
+          backendMode === 'real' 
+            ? 'bg-green-500/5 border-green-500/20' 
+            : backendMode === 'demo'
+            ? 'bg-yellow-500/5 border-yellow-500/20'
+            : 'bg-gray-800/50 border-gray-700'
+        }`}>
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${
+              backendMode === 'real' ? 'bg-green-400' :
+              backendMode === 'demo' ? 'bg-yellow-400 animate-pulse' :
+              'bg-gray-500 animate-pulse'
+            }`}></div>
+            <span className="text-xs text-gray-300">
+              {backendMode === 'real' && 'Backend подключён'}
+              {backendMode === 'demo' && 'Демо-режим'}
+              {backendMode === 'checking' && 'Проверка...'}
+            </span>
+          </div>
+          {backendMode === 'demo' && (
+            <p className="text-xs text-gray-500 mt-1">
+              Запустите сервер для реального подключения
+            </p>
+          )}
         </div>
       </div>
     </aside>

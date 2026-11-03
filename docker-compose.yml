@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  remotesys:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: remotesys
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    restart: unless-stopped
+    networks:
+      - remotesys-network
+    # Для доступа к ADB устройствам на хосте
+    # Раскомментируйте если нужно подключение к USB Android устройствам
+    # volumes:
+    #   - /dev/bus/usb:/dev/bus/usb
+    # privileged: true
+
+  # Опционально: PostgreSQL для хранения данных (в production)
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: remotesys-db
+  #   environment:
+  #     POSTGRES_DB: remotesys
+  #     POSTGRES_USER: remotesys
+  #     POSTGRES_PASSWORD: changeme
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   networks:
+  #     - remotesys-network
+  #   restart: unless-stopped
+
+networks:
+  remotesys-network:
+    driver: bridge
+
+# volumes:
+#   postgres-data:
